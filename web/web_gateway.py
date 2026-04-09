@@ -229,6 +229,13 @@ def on_login_success(data):
         conn.send_pkt(9, from_u=conn.username, token=conn.token)
         conn.send_pkt(10, from_u=conn.username, token=conn.token)
 
+@socketio.on('logout')
+def on_logout(data):
+    sid = request.sid
+    conn = connections.get(sid)
+    if conn:
+        conn.send_pkt(3, from_u=conn.username, token=conn.token)  # PKT_LOGOUT = 3
+
 @socketio.on('send_message')
 def on_send_message(data):
     sid = request.sid

@@ -255,6 +255,21 @@ static void h_login(int fd,const char *j){
     pthread_mutex_unlock(&mu);
 }
 
+static void h_logout(int fd,const char *j){
+    char tok[65];
+    if(!jget_str(j,"token",tok,sizeof(tok))){snd_err(fd,"bad_pkt");return;}
+    pthread_mutex_lock(&mu);
+    Client *c=find_fd(fd);
+    if(c&&strcmp(c->token,tok)==0){
+        c->logged_in=0;
+        memset(c->username,0,sizeof(c->username));
+        memset(c->token,0,sizeof(c->token));
+    }
+    broadcast_userlist();
+    pthread_mutex_unlock(&mu);
+    snd_ok(fd,"logged_out","");
+}
+
 static void h_send(int fd,const char *j){
     char from[MAX_NAME_LEN],to[MAX_NAME_LEN],content[MAX_MSG_LEN],tok[65];
     int tt=0;
@@ -270,13 +285,12 @@ static void h_send(int fd,const char *j){
     pthread_mutex_unlock(&mu);
     if(!auth){snd_err(fd,"unauthorized");return;}
 
-    char plain[MAX_MSG_LEN]; do_dec(content,plain);
-    hist_save(from,to,tt,plain);
-    LOG("MSG %s->%s: %s",from,to,plain);
+    // Server không giải mã/tái mã hóa: chỉ chuyển tiếp bản mã hóa từ client.
+    hist_save(from,to,tt,content);
+    LOG("MSG %s->%s: %s",from,to,content);
 
-    char cipher[MAX_MSG_LEN]; do_enc(plain,cipher);
     char pkt[MAX_MSG_LEN*6 + 512];
-    mkpkt(pkt,sizeof(pkt),PKT_RECV_MSG,from,to,tt,cipher,"","");
+    mkpkt(pkt,sizeof(pkt),PKT_RECV_MSG,from,to,tt,content,"","");
 
     if(tt==TARGET_USER){
         pthread_mutex_lock(&mu);
@@ -445,3 +459,4 @@ int main(void){
     if(use_drv) crypto_close(crypto_fd);
     return 0;
 }
+

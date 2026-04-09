@@ -309,7 +309,6 @@
     <div class="auth-logo">
       <div class="logo-icon">🔐</div>
       <h1>CryptoChat</h1>
-      <p>Mã hoá end-to-end • SHA1 Auth • Kernel Driver</p>
     </div>
 
     <div class="auth-tabs">
@@ -321,12 +320,12 @@
     <div id="form-login">
       <div class="form-group">
         <label class="form-label">Tên đăng nhập</label>
-        <input class="form-input" id="login-user" placeholder="Nhập username..." autocomplete="off"/>
+        <input class="form-input" id="login-user" placeholder="Nhập username..." autocomplete="off" onkeydown="authKeydown(event)"/>
       </div>
       <div class="form-group">
         <label class="form-label">Mật khẩu</label>
         <div class="pass-wrap">
-          <input class="form-input" id="login-pass" type="password" placeholder="Nhập mật khẩu..."/>
+          <input class="form-input" id="login-pass" type="password" placeholder="Nhập mật khẩu..." onkeydown="authKeydown(event)"/>
           <span class="pass-toggle" onclick="togglePass('login-pass',this)">👁</span>
         </div>
       </div>
@@ -338,19 +337,19 @@
     <div id="form-register" style="display:none">
       <div class="form-group">
         <label class="form-label">Tên đăng nhập</label>
-        <input class="form-input" id="reg-user" placeholder="Nhập username..." autocomplete="off"/>
+        <input class="form-input" id="reg-user" placeholder="Nhập username..." autocomplete="off" onkeydown="authKeydown(event)"/>
       </div>
       <div class="form-group">
         <label class="form-label">Mật khẩu</label>
         <div class="pass-wrap">
-          <input class="form-input" id="reg-pass" type="password" placeholder="Nhập mật khẩu..."/>
+          <input class="form-input" id="reg-pass" type="password" placeholder="Nhập mật khẩu..." onkeydown="authKeydown(event)"/>
           <span class="pass-toggle" onclick="togglePass('reg-pass',this)">👁</span>
         </div>
       </div>
       <div class="form-group">
         <label class="form-label">Xác nhận mật khẩu</label>
         <div class="pass-wrap">
-          <input class="form-input" id="reg-pass2" type="password" placeholder="Nhập lại mật khẩu..."/>
+          <input class="form-input" id="reg-pass2" type="password" placeholder="Nhập lại mật khẩu..." onkeydown="authKeydown(event)"/>
           <span class="pass-toggle" onclick="togglePass('reg-pass2',this)">👁</span>
         </div>
       </div>
@@ -371,11 +370,6 @@
         <div class="user-status"><span class="status-dot"></span>Online</div>
       </div>
       <button class="icon-btn" onclick="doLogout()" title="Đăng xuất">🚪</button>
-      <button class="icon-btn" onclick="refreshLists()" title="Làm mới">🔄</button>
-    </div>
-
-    <div class="search-box">
-      <input class="search-input" id="search-input" placeholder="🔍  Tìm kiếm..." oninput="filterConvs(this.value)"/>
     </div>
 
     <div class="tabs-row">
@@ -416,7 +410,7 @@
           <div class="chat-subtitle" id="chat-subtitle">Chọn cuộc trò chuyện</div>
         </div>
         <div class="chat-actions">
-          <span class="header-badge">🔐 Mã hoá</span>
+          <span class="header-badge"> </span>
         </div>
       </div>
 
@@ -426,10 +420,6 @@
         <div class="input-row">
           <textarea id="msg-input" rows="1" placeholder="Nhập tin nhắn..." onkeydown="handleKey(event)"></textarea>
           <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>➤</button>
-        </div>
-        <div class="crypto-info">
-          <span class="crypto-icon">🔒</span>
-          <span>Tin nhắn được mã hoá bằng <strong>Substitution Cipher</strong> (key=42) trước khi gửi</span>
         </div>
       </div>
     </div>
@@ -489,6 +479,13 @@ function switchTab(t){
   document.getElementById('form-login').style.display    = t==='login'    ? '' : 'none';
   document.getElementById('form-register').style.display = t==='register' ? '' : 'none';
 }
+function authKeydown(event){
+  if(event.key === 'Enter'){
+    event.preventDefault();
+    if(document.getElementById('tab-login').classList.contains('active')) doLogin();
+    else doRegister();
+  }
+}
 function togglePass(id,btn){
   const el=document.getElementById(id);
   el.type=el.type==='password'?'text':'password';
@@ -520,7 +517,8 @@ function doLogin(){
 
 function doLogout(){
   if(!confirm('Đăng xuất?')) return;
-  location.reload();
+  socket.emit('logout',{});
+  setTimeout(()=>location.reload(),500);
 }
 
 // ── Server response handlers ───────────────────────────────
@@ -760,7 +758,6 @@ function openChat(name, type){
   // render messages
   const msgs=document.getElementById('messages');
   msgs.innerHTML='';
-  msgs.innerHTML='<div class="system-msg"><span>🔐 Tin nhắn được mã hoá end-to-end</span></div>';
   (conversations[name].messages||[]).forEach(m=>appendMessage(m));
   scrollDown();
   renderConvList();
@@ -781,7 +778,6 @@ function appendMessage(m){
       ${dir==='in'?`<div class="msg-avatar" style="background:${color}">${m.from[0].toUpperCase()}</div>`:''}
       <div class="msg-bubble">
         ${escHtml(m.content)}
-        ${m.cipher?`<div class="msg-encrypted">🔒 ${escHtml(m.cipher.slice(0,40))}${m.cipher.length>40?'…':''}</div>`:''}
         <div class="msg-time">${m.ts}</div>
       </div>
     </div>`;
